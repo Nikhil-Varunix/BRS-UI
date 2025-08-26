@@ -77,13 +77,22 @@ function Layout() {
   }
 
   const Logout = async () => {
-  // Clear login status
-  await AsyncStorage.removeItem('isLoggedIn');
-  await AsyncStorage.removeItem('phoneNumber'); // optional: remove saved phone
+    // Clear login status
+    await AsyncStorage.removeItem('isLoggedIn');
+    await AsyncStorage.removeItem('phoneNumber'); // optional: remove saved phone
 
-  Alert.alert("Success", "Logged out successfully");
-  setCurrentPage("login"); // navigate back to login page
-};
+    Alert.alert("Success", "Logged out successfully");
+    setCurrentPage("login"); // navigate back to login page
+  };
+  // Function to clear all local storage data
+  const clearLocalStorage = async () => {
+    try {
+      await AsyncStorage.clear(); // clears all keys
+      console.log("Local storage cleared");
+    } catch (error) {
+      console.log("Error clearing local storage:", error);
+    }
+  };
   return (
     <>
       <View style={{ paddingTop: insets.top, backgroundColor: '#f04a8cff' }} />
@@ -173,28 +182,31 @@ function Layout() {
           {currentPage === "login" && (
             <Login setCurrentPage={setCurrentPage} />
           )}
+
         </View>
 
         {/* Bottom Tabs */}
         {currentPage !== "login" && currentPage !== "otp" && (
           <View style={styles.bottomTabs}>
             {[
-              { key: 'dashboard', label: 'Home', icon: 'home-outline' },              
-              { key: 'city-prides', label: "City's Pride", icon: 'business-outline' }, 
-              { key: 'schemes', label: 'Schemes', icon: 'list-outline' },             
-              { key: 'videos', label: 'Videos', icon: 'videocam-outline' },           
-              { key: 'image-generate', label: 'Generate Image', icon: 'image-outline' },
+              { key: 'dashboard', label: 'Home', icon: 'home-outline' },
+              { key: 'city-prides', label: "City's Pride", icon: 'business-outline' },
+              { key: 'schemes', label: 'Schemes', icon: 'grid-outline' },        // replaced icon
+              { key: 'videos', label: 'Videos', icon: 'play-circle-outline' },  // replaced icon
+              { key: 'image-generate', label: 'Generate Image', icon: 'images-outline' },
             ].map((tab) => (
               <TouchableOpacity
                 key={tab.key}
                 style={styles.tabButton}
                 onPress={() => setCurrentPage(tab.key as PageKeys)}
               >
-                <Ionicons
-                  name={tab.icon as keyof typeof Ionicons.glyphMap}
-                  size={24}
-                  color={currentPage === tab.key ? '#f40a92ff' : '#9c9b9bff'}
-                />
+                <View style={{ width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}>
+                  <Ionicons
+                    name={tab.icon as keyof typeof Ionicons.glyphMap}
+                    size={24}
+                    color={currentPage === tab.key ? '#f40a92ff' : '#9c9b9b'}
+                  />
+                </View>
                 <Text
                   style={[
                     styles.tabItem,
@@ -228,7 +240,17 @@ function Layout() {
             <TouchableOpacity onPress={() => { setCurrentPage('image-generate'); setDrawerOpen(false); }}>
               <Text style={styles.drawerItem}>Generate Image</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { Logout(); setDrawerOpen(false); }}>
+            {/* <TouchableOpacity onPress={() => { Logout(); setDrawerOpen(false); }}>
+              <Text style={styles.drawerItem}>Logout</Text>
+            </TouchableOpacity> */}
+            {/* // Usage in your TouchableOpacity */}
+            <TouchableOpacity
+              onPress={async () => {
+                await clearLocalStorage();
+                Logout(); // call your logout function if needed
+                setDrawerOpen(false);
+              }}
+            >
               <Text style={styles.drawerItem}>Logout</Text>
             </TouchableOpacity>
           </View>

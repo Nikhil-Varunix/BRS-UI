@@ -7,6 +7,8 @@ import { useSchemes } from '@/context/SchemesContext';
 import { useVideos } from '@/context/VideosContext';
 import { useCityPrides } from '@/context/CityPridesContext';
 import { useImageGenerate } from '@/context/ImageGenerateContext';
+import VideoPopup from '../components/VideoPopup';
+
 
 type DashboardNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -29,6 +31,9 @@ export default function Dashboard({ setCurrentPage, setSelectedSchemeId }: Schem
 
   return (
     <>
+      {/* Video Popup */}
+      <VideoPopup videoUri="http://dev.servicenxt.in/uploads/ad-video.mp4" />
+
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.container}>
           <Text> Dashboard </Text>
@@ -145,9 +150,6 @@ export default function Dashboard({ setCurrentPage, setSelectedSchemeId }: Schem
               </LinearGradient>
             </View>
           </View>
-
-
-
 
 
         </View>

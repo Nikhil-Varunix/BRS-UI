@@ -24,9 +24,13 @@ export default function EditImageGenerate({
   setCurrentPage,
   setSelectedSchemeId
 }: EditImageGenerateProps) {
+
   const [overlayImage, setOverlayImage] = useState<string | null>(null);
   const [label, setLabel] = useState("Your text");
-
+  const [editorWidth, setEditorWidth] = useState(0);
+  const [editorHeight, setEditorHeight] = useState(0);
+  const [imgHeight, setImgHeight] = useState<number | null>(null);
+  const [textSize, setTextSize] = useState({ width: 0, height: 0 });
   const scale = useSharedValue(1);
   const imgX = useSharedValue(100);
   const imgY = useSharedValue(100);
@@ -34,6 +38,12 @@ export default function EditImageGenerate({
   const textY = useSharedValue(50);
 
   const viewRef = useRef<View>(null);
+
+  const [measuredTextSize, setMeasuredTextSize] = useState({ width: 0, height: 0 });
+useEffect(() => {
+  // re-measure after label changes
+  setTextSize(measuredTextSize);
+}, [label]);
 
   // Pick overlay image
   const pickImage = async () => {
@@ -77,16 +87,22 @@ export default function EditImageGenerate({
     },
   });
 
+  // Drag handler with boundary check
   const dragText = useAnimatedGestureHandler({
     onStart: (_, ctx: any) => {
       ctx.startX = textX.value;
       ctx.startY = textY.value;
     },
     onActive: (event, ctx: any) => {
-      textX.value = ctx.startX + event.translationX;
-      textY.value = ctx.startY + event.translationY;
+      const newX = ctx.startX + event.translationX;
+      const newY = ctx.startY + event.translationY;
+
+      // Clamp using actual text width/height
+      textX.value = Math.max(0, Math.min(newX, editorWidth - textSize.width));
+      textY.value = Math.max(0, Math.min(newY, editorHeight - textSize.height));
     },
   });
+
 
   const imageStyle = useAnimatedStyle(() => ({
     position: "absolute",
@@ -117,14 +133,28 @@ export default function EditImageGenerate({
       </View>
 
       <View style={styles.container}>
-        <View ref={viewRef} collapsable={false} style={styles.editor}>
+        <View
+          ref={viewRef}
+          collapsable={false}
+          style={[styles.editor, imgHeight ? { height: imgHeight } : { flex: 1 }]}
+          onLayout={(e) => {
+            setEditorWidth(e.nativeEvent.layout.width);
+          }}
+        >
           {imageUri || imageId ? (
             <Image
               source={imageUri ? { uri: imageUri } : { uri: imageId! }}
-              style={styles.baseImage}
+              style={[styles.baseImage, imgHeight ? { height: imgHeight } : {}]}
+              resizeMode="contain"
+              onLoad={(e) => {
+                const { width: imgW, height: imgH } = e.nativeEvent.source;
+                const scaledHeight = (editorWidth / imgW) * imgH; // scale by container width
+                setImgHeight(scaledHeight);
+                setEditorHeight(scaledHeight); // update editor height
+              }}
             />
           ) : (
-            <View style={[styles.baseImage, { backgroundColor: '#ddd' }]} />
+            <View style={[styles.baseImage, { backgroundColor: "#ddd" }]} />
           )}
 
           {overlayImage && (
@@ -141,9 +171,19 @@ export default function EditImageGenerate({
 
           <PanGestureHandler onGestureEvent={dragText}>
             <Animated.View style={textStyle}>
-              <Text style={styles.label}>{label}</Text>
+              <View
+                onLayout={(e) => {
+                  setTextSize({
+                    width: e.nativeEvent.layout.width,
+                    height: e.nativeEvent.layout.height,
+                  });
+                }}
+              >
+                <Text style={styles.label}>{label}</Text>
+              </View>
             </Animated.View>
           </PanGestureHandler>
+
         </View>
 
         <TextInput
@@ -163,7 +203,14 @@ export default function EditImageGenerate({
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 10 },
-  editor: { flex: 1, borderWidth: 1, borderColor: "gray", marginBottom: 10, overflow: 'hidden' },
+  editor: {
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: "gray",
+    marginBottom: 10,
+    overflow: "hidden",
+    width: "100%",
+  },
   baseImage: { width: "100%", height: "100%", resizeMode: "contain" },
   overlayImage: { width: 150, height: 150, resizeMode: "contain" },
   label: { fontSize: 18, color: "white", backgroundColor: "rgba(0,0,0,0.5)", padding: 5 },
