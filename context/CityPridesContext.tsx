@@ -23,7 +23,7 @@ export const CityPridesProvider = ({ children }: { children: ReactNode }) => {
                 const response = await axios.get(`${API_BASE_URL}/cities`);
                 setCityPrides(response.data);
             } catch (err) {
-                console.error("CityPrides API error:", err);
+                console.error("CityPrides API error:",  err);
             } finally {
                 setLoading(false);
             }
