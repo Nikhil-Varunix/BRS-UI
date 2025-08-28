@@ -32,7 +32,7 @@ export default function Dashboard({ setCurrentPage, setSelectedSchemeId }: Schem
   return (
     <>
       {/* Video Popup */}
-      <VideoPopup videoUri="http://dev.servicenxt.in/uploads/ad-video.mp4" />
+      <VideoPopup videoUri="https://dev.servicenxt.in/uploads/ad-video.mp4" />
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.container}>
