@@ -139,7 +139,7 @@ export default function Login({ setCurrentPage }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20 },
+  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor:"#fff" },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",

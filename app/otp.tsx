@@ -118,7 +118,7 @@ const handleVerifyOTP = async () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20 },
+  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor:"#fff" },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
   input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10, marginBottom: 20, fontSize: 16 },
   button: { backgroundColor: "#f40a92ff", padding: 15, borderRadius: 8, alignItems: "center" },

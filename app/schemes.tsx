@@ -52,6 +52,7 @@ const styles = StyleSheet.create({
     // alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    backgroundColor:"#fff"
   },
   cardHeadding: { fontSize: 15, color: '#000', padding: 8 },
   gradientBox: {
@@ -73,5 +74,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     paddingBottom: 60,
+    backgroundColor:"#fff"
+
   },
 });

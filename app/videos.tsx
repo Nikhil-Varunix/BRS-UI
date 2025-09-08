@@ -49,12 +49,16 @@ export default function VideosPage({ setCurrentPage, setSelectedSchemeId }: Sche
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    paddingBottom: 30
+    paddingBottom: 30,
+    backgroundColor:"#fff"
+
   },
   container: {
     flex: 1,
     justifyContent: 'center',
     padding: 20,
+    backgroundColor:"#fff"
+
   },
   pageTitle: {
     fontSize: 22,

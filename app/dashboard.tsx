@@ -185,6 +185,7 @@ const styles = StyleSheet.create({
     // alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    backgroundColor:"#fff",
   },
   dflex: {
     flex: 1,
@@ -197,6 +198,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     paddingBottom: 60,
+    backgroundColor:"#fff",
   },
   link: {
     marginTop: 15,

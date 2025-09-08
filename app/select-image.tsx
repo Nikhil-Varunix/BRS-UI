@@ -51,7 +51,7 @@ export default function SelectImage({ setCurrentPage, setSelectedImageId }: Sche
   }, []);
 
   return (
-    <ScrollView style={{ padding: 10 }}>
+    <ScrollView  contentContainerStyle={styles.scrollContainer}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => {
@@ -104,5 +104,10 @@ const styles = StyleSheet.create({
   },
   headerBtn: {
     marginRight: 8,
+  },
+  scrollContainer: {
+    padding: 10,
+    backgroundColor:"#fff"
+
   },
 });
