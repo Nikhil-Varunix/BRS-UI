@@ -51,7 +51,7 @@ export default function SelectImage({ setCurrentPage, setSelectedImageId }: Sche
   }, []);
 
   return (
-    <ScrollView  contentContainerStyle={styles.scrollContainer}>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => {
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   header: {
-    paddingHorizontal: 12,
+    // paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 5,
@@ -106,8 +106,16 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   scrollContainer: {
-    padding: 10,
-    backgroundColor:"#fff"
-
+    // flexGrow: 1,
+    minHeight: "100%",
+    padding: 20,
+    backgroundColor: "#fff",
   },
+  container: {
+    // flex: 1,
+    // justifyContent: "center",
+    // padding: 20,
+    backgroundColor: "#fff",
+  },
+
 });

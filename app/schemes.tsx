@@ -47,12 +47,14 @@ export default function Schemes({ setCurrentPage, setSelectedSchemeId }: Schemes
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    minHeight: "100%",
+    backgroundColor: "#fff",
+  },
   container: {
-    flex: 1,
-    // alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 20,
-    backgroundColor:"#fff"
+    backgroundColor: "#fff",
   },
   cardHeadding: { fontSize: 15, color: '#000', padding: 8 },
   gradientBox: {
@@ -71,10 +73,5 @@ const styles = StyleSheet.create({
   link: {
     marginTop: 15,
     paddingVertical: 15,
-  },
-  scrollContainer: {
-    paddingBottom: 60,
-    backgroundColor:"#fff"
-
-  },
+  }
 });

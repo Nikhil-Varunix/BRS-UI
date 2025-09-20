@@ -181,11 +181,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',            // aligns vertically in middle
   },
   container: {
-    flex: 1,
-    // alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 20,
-    backgroundColor:"#fff",
+    backgroundColor: "#fff",
   },
   dflex: {
     flex: 1,
@@ -197,9 +195,11 @@ const styles = StyleSheet.create({
 
   },
   scrollContainer: {
-    paddingBottom: 60,
-    backgroundColor:"#fff",
+    flexGrow: 1,
+    minHeight: "100%",
+    backgroundColor: "#fff",
   },
+
   link: {
     marginTop: 15,
     paddingVertical: 15,

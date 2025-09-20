@@ -6,84 +6,87 @@ type DashboardScreenNavigationProp = NativeStackNavigationProp<
   'Dashboard',
   'Schemedetails'
 >;
-type PageKeys = "dashboard" | "otp" | "SplashScreen" | "login"| "edit-image-generate" | "videos" |  "city-prides" | "city-details" | "schemes" | "image-generate" | "scheme-details" | "select-image";
- 
+type PageKeys = "dashboard" | "otp" | "SplashScreen" | "login" | "edit-image-generate" | "videos" | "city-prides" | "city-details" | "schemes" | "image-generate" | "scheme-details" | "select-image";
+
 type SchemesProps = {
   setCurrentPage: React.Dispatch<React.SetStateAction<PageKeys>>;
   setSelectedSchemeId: (id: string) => void;
 };
 export default function ImageGenerate({ setCurrentPage, setSelectedSchemeId }: SchemesProps) {
-    // const navigation = useNavigation(); 
+  // const navigation = useNavigation(); 
   return (
-   <>
+    <>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.container}> 
+        <View style={styles.container}>
           <Text>  Select Images month wise </Text>
 
-          <View> 
-              <TouchableNativeFeedback         
-                onPress={() => {
-                    setSelectedSchemeId('001');
-                    setCurrentPage('select-image');
-                  }}
-                          
-                background={TouchableNativeFeedback.Ripple('#3e9bf3ff', false)} // 
-              >              
-                <View style={styles.gradientBox}> 
-                  <Text style={styles.cardHeadding}> January </Text>
-                </View>                 
+          <View>
+            <TouchableNativeFeedback
+              onPress={() => {
+                setSelectedSchemeId('001');
+                setCurrentPage('select-image');
+              }}
 
-            </TouchableNativeFeedback>  
-          </View>
+              background={TouchableNativeFeedback.Ripple('#3e9bf3ff', false)} // 
+            >
+              <View style={styles.gradientBox}>
+                <Text style={styles.cardHeadding}> January </Text>
+              </View>
 
-          <View> 
-              <TouchableNativeFeedback 
-                background={TouchableNativeFeedback.Ripple('#3e9bf3ff', false)} 
-              >              
-                <View style={styles.gradientBox}> 
-                  <Text style={styles.cardHeadding}> February </Text>  
-                </View>  
-            </TouchableNativeFeedback> 
-          </View>
-              
-
-          <View> 
-              <TouchableNativeFeedback 
-                background={TouchableNativeFeedback.Ripple('#3e9bf3ff', false)} 
-              >              
-                <View style={styles.gradientBox}> 
-                  <Text style={styles.cardHeadding}> March</Text>  
-                </View>  
-            </TouchableNativeFeedback> 
+            </TouchableNativeFeedback>
           </View>
 
-          <View> 
-          
-              <TouchableNativeFeedback
-                background={TouchableNativeFeedback.Ripple('#3e9bf3ff', false)} 
-              >              
-                <View style={styles.gradientBox}> 
-                  <Text style={styles.cardHeadding}>April </Text>  
-                </View>  
-            </TouchableNativeFeedback> 
+          <View>
+            <TouchableNativeFeedback
+              background={TouchableNativeFeedback.Ripple('#3e9bf3ff', false)}
+            >
+              <View style={styles.gradientBox}>
+                <Text style={styles.cardHeadding}> February </Text>
+              </View>
+            </TouchableNativeFeedback>
           </View>
-              
-                
+
+
+          <View>
+            <TouchableNativeFeedback
+              background={TouchableNativeFeedback.Ripple('#3e9bf3ff', false)}
+            >
+              <View style={styles.gradientBox}>
+                <Text style={styles.cardHeadding}> March</Text>
+              </View>
+            </TouchableNativeFeedback>
           </View>
-        </ScrollView>
+
+          <View>
+
+            <TouchableNativeFeedback
+              background={TouchableNativeFeedback.Ripple('#3e9bf3ff', false)}
+            >
+              <View style={styles.gradientBox}>
+                <Text style={styles.cardHeadding}>April </Text>
+              </View>
+            </TouchableNativeFeedback>
+          </View>
+
+
+        </View>
+      </ScrollView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor:"#fff"
+  scrollContainer: {
+    minHeight: "100%",
+    backgroundColor: "#fff",
   },
-  cardHeadding:{fontSize: 15, color:'#000', padding:8},
+  container: {
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "#fff",
+  },
+
+  cardHeadding: { fontSize: 15, color: '#000', padding: 8 },
   gradientBox: {
     padding: 10,
     marginTop: 10,
@@ -93,7 +96,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    backgroundColor:'#c1e8f3ff'
+    backgroundColor: '#c1e8f3ff'
     // alignItems: 'center', 
     // justifyContent: 'center',
   },
@@ -101,8 +104,5 @@ const styles = StyleSheet.create({
     marginTop: 15,
     paddingVertical: 15,
   },
-  scrollContainer: {
-    backgroundColor:"#fff",
-    paddingBottom: 60,
-  },
+
 });

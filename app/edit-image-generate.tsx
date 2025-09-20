@@ -3,7 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
 import React, { useEffect, useRef, useState } from "react";
 import { Button, Dimensions, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { GestureHandlerRootView, PanGestureHandler, PinchGestureHandler } from "react-native-gesture-handler";
+import { GestureHandlerRootView, PanGestureHandler, PinchGestureHandler, TapGestureHandler } from "react-native-gesture-handler";
 import Animated, { useAnimatedGestureHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { captureRef } from "react-native-view-shot";
 
@@ -25,6 +25,13 @@ export default function EditImageGenerate({
   setSelectedSchemeId
 }: EditImageGenerateProps) {
 
+
+  const panRef = useRef(null);
+  const pinchRef = useRef(null);
+  const tapRef = useRef(null);
+
+  const [overlayShape, setOverlayShape] = useState<"original" | "square" | "rounded" | "circle">("original");
+
   const [overlayImage, setOverlayImage] = useState<string | null>(null);
   const [label, setLabel] = useState("Your text");
   const [editorWidth, setEditorWidth] = useState(0);
@@ -40,10 +47,10 @@ export default function EditImageGenerate({
   const viewRef = useRef<View>(null);
 
   const [measuredTextSize, setMeasuredTextSize] = useState({ width: 0, height: 0 });
-useEffect(() => {
-  // re-measure after label changes
-  setTextSize(measuredTextSize);
-}, [label]);
+  useEffect(() => {
+    // re-measure after label changes
+    setTextSize(measuredTextSize);
+  }, [label]);
 
   // Pick overlay image
   const pickImage = async () => {
@@ -151,23 +158,60 @@ useEffect(() => {
                 const scaledHeight = (editorWidth / imgW) * imgH; // scale by container width
                 setImgHeight(scaledHeight);
                 setEditorHeight(scaledHeight); // update editor height
+
+                // 👇 set default text position at bottom
+                textY.value = scaledHeight - 50; // 50 = approx text height margin
+                textX.value = 20; // some left padding
               }}
+
             />
           ) : (
             <View style={[styles.baseImage, { backgroundColor: "#ddd" }]} />
           )}
 
+
           {overlayImage && (
-            <PanGestureHandler onGestureEvent={dragImage}>
+            <PanGestureHandler ref={panRef} simultaneousHandlers={[pinchRef, tapRef]} onGestureEvent={dragImage}>
               <Animated.View style={imageStyle}>
-                <PinchGestureHandler onGestureEvent={pinchHandler}>
+                <PinchGestureHandler ref={pinchRef} simultaneousHandlers={[panRef, tapRef]} onGestureEvent={pinchHandler}>
                   <Animated.View>
-                    <Image source={{ uri: overlayImage }} style={styles.overlayImage} />
+                    <TapGestureHandler
+                      ref={tapRef}
+                      numberOfTaps={2}
+                      onActivated={() => {
+                        setOverlayShape((prev) => {
+                          if (prev === "original") return "square";
+                          if (prev === "square") return "rounded";
+                          if (prev === "rounded") return "circle";
+                          return "original"; // back to default
+                        });
+
+
+                      }}
+                      simultaneousHandlers={[panRef, pinchRef]}
+                    >
+                      <Animated.View>
+                        <View
+                          style={[
+                            styles.cropWrapper,
+                            overlayShape === "circle" && { borderRadius: 75 }, // half of width/height
+                            overlayShape === "rounded" && { borderRadius: 20 },
+                            overlayShape === "square" && { borderRadius: 0 },
+                            overlayShape === "original" && { borderRadius: 0, overflow: "visible" }, // no cropping
+                          ]}
+                        >
+                          <Image source={{ uri: overlayImage }} style={styles.overlayImage} />
+                        </View>
+
+                      </Animated.View>
+                    </TapGestureHandler>
+
                   </Animated.View>
                 </PinchGestureHandler>
               </Animated.View>
             </PanGestureHandler>
           )}
+
 
           <PanGestureHandler onGestureEvent={dragText}>
             <Animated.View style={textStyle}>
@@ -202,9 +246,17 @@ useEffect(() => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10, 
-    backgroundColor:"#fff"
-   },
+  scrollContainer: {
+    flexGrow: 1,
+    minHeight: "100%",
+    backgroundColor: "#fff",
+  },
+
+  container: {
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "#fff",
+  },
   editor: {
     alignSelf: "center",
     borderWidth: 1,
@@ -213,10 +265,22 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     width: "100%",
   },
-  baseImage: { width: "100%", height: "100%", resizeMode: "contain" },
-  overlayImage: { width: 150, height: 150, resizeMode: "contain" },
-  label: { fontSize: 18, color: "white", backgroundColor: "rgba(0,0,0,0.5)", padding: 5 },
+  baseImage: { width: "100%", height: "100%", resizeMode: "contain", },
+  // overlayImage: { width: 150, height: 150, resizeMode: "contain", borderRadius: 40 },
+  label: { fontSize: 18, color: "white", backgroundColor: "rgba(0,0,0,0)", padding: 5 },
   input: { borderWidth: 1, padding: 8, marginVertical: 10 },
-  header: { height: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 },
+  header: { height: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, backgroundColor: "#fff", },
   headerBtn: { padding: 8, marginRight: 8 },
+  cropWrapper: {
+    width: 150,
+    height: 150,
+    overflow: "hidden",   // will be overridden if "original"
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  overlayImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
 });

@@ -29,7 +29,7 @@ export default function VideosPage({ setCurrentPage, setSelectedSchemeId }: Sche
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       {/* <Text style={styles.pageTitle}>🎥 Featured Videos</Text> */}
       <View  >
-        <Text> Videos </Text>
+        <Text style={{paddingStart:10}}> Videos </Text>
         {videos.map((video) => (
           <View key={video.id} style={styles.videoCard}>
             <Text style={styles.videoTitle}>{video.name}</Text>
@@ -49,14 +49,15 @@ export default function VideosPage({ setCurrentPage, setSelectedSchemeId }: Sche
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    paddingBottom: 30,
+    paddingBlock: 20,
+    paddingInline: 10,
     backgroundColor:"#fff"
 
   },
   container: {
-    flex: 1,
     justifyContent: 'center',
-    padding: 20,
+    paddingBlock: 20,
+    paddingTop: 0,
     backgroundColor:"#fff"
 
   },
