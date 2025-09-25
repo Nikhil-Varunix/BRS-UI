@@ -1,6 +1,9 @@
 {
+  "cli": {
+    "appVersionSource": "appJson"
+  },
   "expo": {
-    "name": "photo_frame",
+    "name": "MANA BRS",
     "slug": "photo_frame",
     "version": "1.0.0",
     "orientation": "portrait",

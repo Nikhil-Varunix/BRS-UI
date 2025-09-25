@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
-import React, { useEffect, useRef, useState } from "react";
-import { Button, Dimensions, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useRef, useState } from "react";
+import { Button, Dimensions, Image, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView, PanGestureHandler, PinchGestureHandler, TapGestureHandler } from "react-native-gesture-handler";
-import Animated, { useAnimatedGestureHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, { useAnimatedGestureHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { captureRef } from "react-native-view-shot";
+
 
 type PageKeys = "dashboard" | "otp" | "SplashScreen" | "login" | "edit-image-generate" | "videos" | "city-prides" | "city-details" | "schemes" | "image-generate" | "scheme-details" | "select-image";
 
@@ -25,34 +26,31 @@ export default function EditImageGenerate({
   setSelectedSchemeId
 }: EditImageGenerateProps) {
 
-
   const panRef = useRef(null);
   const pinchRef = useRef(null);
   const tapRef = useRef(null);
+  const inputRef = useRef<TextInput>(null);
 
   const [overlayShape, setOverlayShape] = useState<"original" | "square" | "rounded" | "circle">("original");
-
   const [overlayImage, setOverlayImage] = useState<string | null>(null);
   const [label, setLabel] = useState("Your text");
   const [editorWidth, setEditorWidth] = useState(0);
   const [editorHeight, setEditorHeight] = useState(0);
   const [imgHeight, setImgHeight] = useState<number | null>(null);
   const [textSize, setTextSize] = useState({ width: 0, height: 0 });
+  const [isEditingText, setIsEditingText] = useState(false);
+
+
   const scale = useSharedValue(1);
-  const imgX = useSharedValue(100);
-  const imgY = useSharedValue(100);
-  const textX = useSharedValue(50);
-  const textY = useSharedValue(50);
+  const imgX = useSharedValue(0);
+  const imgY = useSharedValue(0);
+
+  const textX = useSharedValue(0);
+  const textY = useSharedValue(0);
+  const textScale = useSharedValue(1);
 
   const viewRef = useRef<View>(null);
 
-  const [measuredTextSize, setMeasuredTextSize] = useState({ width: 0, height: 0 });
-  useEffect(() => {
-    // re-measure after label changes
-    setTextSize(measuredTextSize);
-  }, [label]);
-
-  // Pick overlay image
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -62,7 +60,6 @@ export default function EditImageGenerate({
     if (!result.canceled) setOverlayImage(result.assets[0].uri);
   };
 
-  // Share the edited image
   const onShare = async () => {
     if (!viewRef.current) return;
     try {
@@ -73,7 +70,7 @@ export default function EditImageGenerate({
     }
   };
 
-  // Gesture handlers
+  // --- Image gestures ---
   const dragImage = useAnimatedGestureHandler({
     onStart: (_, ctx: any) => {
       ctx.startX = imgX.value;
@@ -94,7 +91,7 @@ export default function EditImageGenerate({
     },
   });
 
-  // Drag handler with boundary check
+  // --- Text gestures ---
   const dragText = useAnimatedGestureHandler({
     onStart: (_, ctx: any) => {
       ctx.startX = textX.value;
@@ -103,13 +100,20 @@ export default function EditImageGenerate({
     onActive: (event, ctx: any) => {
       const newX = ctx.startX + event.translationX;
       const newY = ctx.startY + event.translationY;
+      textX.value = ctx.startX + event.translationX;
+      textY.value = ctx.startY + event.translationY;
 
-      // Clamp using actual text width/height
-      textX.value = Math.max(0, Math.min(newX, editorWidth - textSize.width));
-      textY.value = Math.max(0, Math.min(newY, editorHeight - textSize.height));
     },
   });
 
+  const pinchTextHandler = useAnimatedGestureHandler({
+    onStart: (_, ctx: any) => {
+      ctx.startScale = textScale.value;
+    },
+    onActive: (event, ctx: any) => {
+      textScale.value = Math.max(0.5, Math.min(ctx.startScale * event.scale, 5));
+    },
+  });
 
   const imageStyle = useAnimatedStyle(() => ({
     position: "absolute",
@@ -118,11 +122,35 @@ export default function EditImageGenerate({
     transform: [{ scale: scale.value }],
   }));
 
-  const textStyle = useAnimatedStyle(() => ({
+
+
+  const textAnimatedStyle = useAnimatedStyle(() => ({
     position: "absolute",
     left: textX.value,
     top: textY.value,
+    transform: [{ scale: textScale.value }],
+    backgroundColor: isEditingText ? "rgba(26, 24, 24, 0.25)" : "transparent",
+    paddingHorizontal: isEditingText ? 5 : 0,
+
   }));
+
+
+  const onTextTap = () => {
+    setIsEditingText(true);
+
+    textX.value = withTiming((editorWidth - textSize.width * textScale.value) / 2, { duration: 300 });
+    textY.value = withTiming((editorHeight - textSize.height * textScale.value) / 2, { duration: 300 });
+
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  };
+
+
+
+  const onTextInputBlur = () => {
+    setIsEditingText(false);
+  };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -136,17 +164,15 @@ export default function EditImageGenerate({
         >
           <Ionicons name="arrow-back" size={22} color="#000" />
         </TouchableOpacity>
-        <Text>Select Images</Text>
+        <Animated.Text>Edit Image</Animated.Text>
       </View>
 
       <View style={styles.container}>
         <View
           ref={viewRef}
           collapsable={false}
-          style={[styles.editor, imgHeight ? { height: imgHeight } : { flex: 1 }]}
-          onLayout={(e) => {
-            setEditorWidth(e.nativeEvent.layout.width);
-          }}
+          style={[styles.editor, imgHeight ? { height: imgHeight }:"" ]}
+          onLayout={(e) => setEditorWidth(e.nativeEvent.layout.width)}
         >
           {imageUri || imageId ? (
             <Image
@@ -155,20 +181,19 @@ export default function EditImageGenerate({
               resizeMode="contain"
               onLoad={(e) => {
                 const { width: imgW, height: imgH } = e.nativeEvent.source;
-                const scaledHeight = (editorWidth / imgW) * imgH; // scale by container width
+                const scaledHeight = (editorWidth / imgW) * imgH;
                 setImgHeight(scaledHeight);
-                setEditorHeight(scaledHeight); // update editor height
+                setEditorHeight(scaledHeight);
 
-                // 👇 set default text position at bottom
-                textY.value = scaledHeight - 50; // 50 = approx text height margin
-                textX.value = 20; // some left padding
+                textX.value = withTiming(0, { duration: 500 });
+                textY.value = withTiming( scaledHeight - 60, { duration: 500 });
+                
+
               }}
-
             />
           ) : (
             <View style={[styles.baseImage, { backgroundColor: "#ddd" }]} />
           )}
-
 
           {overlayImage && (
             <PanGestureHandler ref={panRef} simultaneousHandlers={[pinchRef, tapRef]} onGestureEvent={dragImage}>
@@ -183,10 +208,8 @@ export default function EditImageGenerate({
                           if (prev === "original") return "square";
                           if (prev === "square") return "rounded";
                           if (prev === "rounded") return "circle";
-                          return "original"; // back to default
+                          return "original";
                         });
-
-
                       }}
                       simultaneousHandlers={[panRef, pinchRef]}
                     >
@@ -194,93 +217,105 @@ export default function EditImageGenerate({
                         <View
                           style={[
                             styles.cropWrapper,
-                            overlayShape === "circle" && { borderRadius: 75 }, // half of width/height
+                            overlayShape === "circle" && { borderRadius: 75 },
                             overlayShape === "rounded" && { borderRadius: 20 },
                             overlayShape === "square" && { borderRadius: 0 },
-                            overlayShape === "original" && { borderRadius: 0, overflow: "visible" }, // no cropping
+                            overlayShape === "original" && { borderRadius: 0, overflow: "visible" },
                           ]}
                         >
                           <Image source={{ uri: overlayImage }} style={styles.overlayImage} />
                         </View>
-
                       </Animated.View>
                     </TapGestureHandler>
-
                   </Animated.View>
                 </PinchGestureHandler>
               </Animated.View>
             </PanGestureHandler>
           )}
 
-
-          <PanGestureHandler onGestureEvent={dragText}>
-            <Animated.View style={textStyle}>
-              <View
-                onLayout={(e) => {
-                  setTextSize({
-                    width: e.nativeEvent.layout.width,
-                    height: e.nativeEvent.layout.height,
-                  });
-                }}
+          <PanGestureHandler
+            ref={panRef}
+            simultaneousHandlers={[pinchRef, tapRef]}
+            onGestureEvent={dragText}
+          >
+            <Animated.View style={textAnimatedStyle}>
+              <PinchGestureHandler
+                ref={pinchRef}
+                simultaneousHandlers={[panRef, tapRef]}
+                onGestureEvent={pinchTextHandler}
               >
-                <Text style={styles.label}>{label}</Text>
-              </View>
+                <Animated.View style={{ padding: isEditingText ? 0 : 15, }}>
+                  <TapGestureHandler
+                    ref={tapRef}
+                    numberOfTaps={1}
+                    onActivated={onTextTap}
+                    simultaneousHandlers={[panRef, pinchRef]}
+                  >
+                    <Animated.View style={{ padding: 5, justifyContent: 'center', alignItems: 'center' }}>
+                      <Animated.Text style={[styles.label]}>
+                        {label}
+                      </Animated.Text>
+                    </Animated.View>
+                  </TapGestureHandler>
+                </Animated.View>
+              </PinchGestureHandler>
             </Animated.View>
           </PanGestureHandler>
+
 
         </View>
 
         <TextInput
           style={styles.input}
-          placeholder="Enter text"
+          ref={inputRef}
           value={label}
           onChangeText={setLabel}
+          placeholder="Enter text here..."
+          onFocus={onTextTap}
+          onBlur={onTextInputBlur}
         />
-        <Button title="Pick Image" onPress={pickImage} />
-        <View style={{ marginTop: 10 }}>
-          <Button title="Share" onPress={onShare} />
+        <View style={styles.buttonContainer}>
+          <View style={[styles.buttonWrapper, styles.addButtonWrapper]}>
+            <Button title="+ Add Image" onPress={pickImage} color="success" />
+          </View>
+          <View style={[styles.buttonWrapper, styles.shareButtonWrapper]}>
+            <Button title="Share" onPress={onShare} color="#2196F3" />
+          </View>
         </View>
+
+
       </View>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    minHeight: "100%",
-    backgroundColor: "#fff",
-  },
-
-  container: {
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#fff",
-  },
-  editor: {
-    alignSelf: "center",
-    borderWidth: 1,
-    borderColor: "gray",
-    marginBottom: 10,
-    overflow: "hidden",
-    width: "100%",
-  },
-  baseImage: { width: "100%", height: "100%", resizeMode: "contain", },
-  // overlayImage: { width: 150, height: 150, resizeMode: "contain", borderRadius: 40 },
-  label: { fontSize: 18, color: "white", backgroundColor: "rgba(0,0,0,0)", padding: 5 },
+  container: { padding: 20, paddingTop: 0, backgroundColor: "#fff", flex: 1 },
+  editor: { alignSelf: "center", borderWidth: 1, borderColor: "gray", marginBottom: 10, overflow: "hidden", width: "100%" },
+  baseImage: { width: "100%", height: "100%", resizeMode: "contain" },
+  label: { color: "white", textAlign: "center", fontSize: 20 },
   input: { borderWidth: 1, padding: 8, marginVertical: 10 },
   header: { height: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, backgroundColor: "#fff", },
   headerBtn: { padding: 8, marginRight: 8 },
-  cropWrapper: {
-    width: 150,
-    height: 150,
-    overflow: "hidden",   // will be overridden if "original"
-    justifyContent: "center",
-    alignItems: "center",
+  cropWrapper: { width: 150, height: 150, overflow: "hidden", justifyContent: "center", alignItems: "center" },
+  overlayImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
   },
-  overlayImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
+  buttonWrapper: {
+    flex: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
+  addButtonWrapper: {
+    marginRight: 10,
+  },
+  shareButtonWrapper: {},
 });

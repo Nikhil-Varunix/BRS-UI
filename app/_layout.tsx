@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { Alert, BackHandler, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -24,7 +24,6 @@ import { VideosProvider } from '../context/VideosContext';
 import { CityPridesProvider } from '../context/CityPridesContext';
 import { ImageGenerateProvider } from '../context/ImageGenerateContext';
 
-
 type PageKeys =
   | 'dashboard'
   | 'city-prides'
@@ -39,8 +38,6 @@ type PageKeys =
   | 'edit-image-generate'
   | 'otp';
 
-
-
 export default function LayoutWrapper() {
   return (
     <SchemesProvider>
@@ -54,9 +51,11 @@ export default function LayoutWrapper() {
     </SchemesProvider>
   );
 }
+
 function Layout() {
   const [showSplash, setShowSplash] = useState(true);
   const [currentPage, setCurrentPage] = useState<PageKeys>('dashboard');
+  const [history, setHistory] = useState<PageKeys[]>([]); // navigation history
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null);
@@ -65,41 +64,96 @@ function Layout() {
 
   const insets = useSafeAreaInsets();
 
+  // --- Navigation helper functions ---
+  const navigateTo = (page: PageKeys) => {
+    if (page !== currentPage) {
+      setHistory((prev) => [...prev, currentPage]); // push current page to history
+      setCurrentPage(page);
+    }
+  };
+
+  const goBack = () => {
+    setHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setCurrentPage(last);
+      return prev.slice(0, -1); // remove last
+    });
+  };
+
+  // --- Back button handler ---
+  useEffect(() => {
+    const backAction = () => {
+      if (drawerOpen) {
+        setDrawerOpen(false);
+        return true; // prevent app exit
+      }
+
+      if (history.length > 0) {
+        goBack();
+        return true;
+      }
+
+      // If at dashboard, show exit alert
+      if (currentPage === 'dashboard') {
+        Alert.alert(
+          'Exit App',
+          'Are you sure you want to exit?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Exit', onPress: () => BackHandler.exitApp() },
+          ],
+          { cancelable: true }
+        );
+        return true;
+      }
+
+      return false; // default behavior for login/otp or root pages
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [currentPage, history, drawerOpen]);
+
   if (showSplash) {
     return (
       <SplashScreen
         onFinish={() => {
           setShowSplash(false);
-          setCurrentPage("login"); // ⬅️ Go to login page
+          setCurrentPage('dashboard');
         }}
       />
     );
   }
 
   const Logout = async () => {
-    // Clear login status
     await AsyncStorage.removeItem('isLoggedIn');
-    await AsyncStorage.removeItem('phoneNumber'); // optional: remove saved phone
+    await AsyncStorage.removeItem('phoneNumber');
 
-    Alert.alert("Success", "Logged out successfully");
-    setCurrentPage("login"); // navigate back to login page
+    Alert.alert('Success', 'Logged out successfully');
+    setHistory([]); // clear history
+    setCurrentPage('login');
   };
-  // Function to clear all local storage data
+
   const clearLocalStorage = async () => {
     try {
-      await AsyncStorage.clear(); // clears all keys
-      console.log("Local storage cleared");
+      await AsyncStorage.clear();
+      console.log('Local storage cleared');
     } catch (error) {
-      console.log("Error clearing local storage:", error);
+      console.log('Error clearing local storage:', error);
     }
   };
+
   return (
     <>
       <View style={{ paddingTop: insets.top, backgroundColor: '#f04a8cff' }} />
-
       <View style={{ flex: 1 }}>
         {/* Header */}
-        {currentPage !== "login" && currentPage !== "otp" && (
+        {currentPage !== 'login' && currentPage !== 'otp' && (
           <View style={[styles.header, { backgroundColor: '#f866beff' }]}>
             <TouchableOpacity onPress={() => setDrawerOpen(!drawerOpen)}>
               <Text style={styles.menu}>☰</Text>
@@ -110,55 +164,34 @@ function Layout() {
 
         {/* Page Content */}
         <View style={{ flex: 1 }}>
-          {currentPage === "SplashScreen" && (
-            <SplashScreen onFinish={() => setCurrentPage("login")} />
-          )}
-          {currentPage === "otp" && (
-            <OTP
-              setCurrentPage={setCurrentPage}
-            />
-          )}
+          {currentPage === 'SplashScreen' && <SplashScreen onFinish={() => navigateTo('login')} />}
+          {currentPage === 'otp' && <OTP setCurrentPage={setCurrentPage} />}
 
           {currentPage === 'dashboard' && (
-            <Dashboard
-              setCurrentPage={setCurrentPage}
-              setSelectedSchemeId={setSelectedSchemeId}
-            />
+            <Dashboard setCurrentPage={navigateTo} setSelectedSchemeId={setSelectedSchemeId} />
           )}
           {currentPage === 'city-prides' && (
-            <CityPrides
-              setCurrentPage={setCurrentPage}
-              setSelectedSchemeId={setSelectedSchemeId}
-            />
+            <CityPrides setCurrentPage={navigateTo} setSelectedSchemeId={setSelectedSchemeId} />
           )}
           {currentPage === 'schemes' && (
-            <Schemes
-              setCurrentPage={setCurrentPage}
-              setSelectedSchemeId={setSelectedSchemeId}
-            />
+            <Schemes setCurrentPage={navigateTo} setSelectedSchemeId={setSelectedSchemeId} />
           )}
           {currentPage === 'videos' && (
-            <VideosPage
-              setCurrentPage={setCurrentPage}
-              setSelectedSchemeId={setSelectedSchemeId}
-            />
+            <VideosPage setCurrentPage={navigateTo} setSelectedSchemeId={setSelectedSchemeId} />
           )}
           {currentPage === 'image-generate' && (
-            <ImageGenerate
-              setCurrentPage={setCurrentPage}
-              setSelectedSchemeId={setSelectedSchemeId}
-            />
+            <ImageGenerate setCurrentPage={navigateTo} setSelectedSchemeId={setSelectedSchemeId} />
           )}
           {currentPage === 'scheme-details' && (
             <SchemeDetails
               selectedSchemeId={selectedSchemeId}
-              setCurrentPage={setCurrentPage}
+              setCurrentPage={navigateTo}
               setSelectedSchemeId={setSelectedSchemeId}
             />
           )}
           {currentPage === 'city-details' && (
             <CityDetails
-              setCurrentPage={setCurrentPage}
+              setCurrentPage={navigateTo}
               setSelectedSchemeId={setSelectedSchemeId}
               selectedSchemeId={selectedSchemeId}
             />
@@ -167,38 +200,35 @@ function Layout() {
             <SelectImage
               setSelectedImageId={setSelectedImageId}
               setSelectedImageUri={setSelectedImageUri}
-              setCurrentPage={setCurrentPage}
+              setCurrentPage={navigateTo}
             />
           )}
           {currentPage === 'edit-image-generate' && (
             <EditImageGenerate
               imageId={selectedImageId}
               imageUri={selectedImageUri}
-              setCurrentPage={setCurrentPage}
+              setCurrentPage={navigateTo}
               setSelectedImageId={setSelectedImageId}
               setSelectedSchemeId={setSelectedSchemeId}
             />
           )}
-          {currentPage === "login" && (
-            <Login setCurrentPage={setCurrentPage} />
-          )}
-
+          {currentPage === 'login' && <Login setCurrentPage={navigateTo} />}
         </View>
 
         {/* Bottom Tabs */}
-        {currentPage !== "login" && currentPage !== "otp" && (
+        {currentPage !== 'login' && currentPage !== 'otp' && (
           <View style={styles.bottomTabs}>
             {[
               { key: 'dashboard', label: 'Home', icon: 'home-outline' },
               { key: 'city-prides', label: "City's Pride", icon: 'business-outline' },
-              { key: 'schemes', label: 'Schemes', icon: 'grid-outline' },        // replaced icon
-              { key: 'videos', label: 'Videos', icon: 'play-circle-outline' },  // replaced icon
+              { key: 'schemes', label: 'Schemes', icon: 'grid-outline' },
+              { key: 'videos', label: 'Videos', icon: 'play-circle-outline' },
               { key: 'image-generate', label: 'Generate Image', icon: 'images-outline' },
             ].map((tab) => (
               <TouchableOpacity
                 key={tab.key}
                 style={styles.tabButton}
-                onPress={() => setCurrentPage(tab.key as PageKeys)}
+                onPress={() => navigateTo(tab.key as PageKeys)}
               >
                 <View style={{ width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}>
                   <Ionicons
@@ -207,12 +237,7 @@ function Layout() {
                     color={currentPage === tab.key ? '#f40a92ff' : '#9c9b9b'}
                   />
                 </View>
-                <Text
-                  style={[
-                    styles.tabItem,
-                    currentPage === tab.key && styles.activeTabText,
-                  ]}
-                >
+                <Text style={[styles.tabItem, currentPage === tab.key && styles.activeTabText]}>
                   {tab.label}
                 </Text>
               </TouchableOpacity>
@@ -225,37 +250,23 @@ function Layout() {
       {drawerOpen && (
         <View style={styles.drawerOverlay}>
           <View style={styles.drawer}>
-            <TouchableOpacity onPress={() => { setCurrentPage('dashboard'); setDrawerOpen(false); }}>
+            <TouchableOpacity onPress={() => { navigateTo('dashboard'); setDrawerOpen(false); }}>
               <Text style={styles.drawerItem}>Dashboard</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setCurrentPage('city-prides'); setDrawerOpen(false); }}>
+            <TouchableOpacity onPress={() => { navigateTo('city-prides'); setDrawerOpen(false); }}>
               <Text style={styles.drawerItem}>City's Pride</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setCurrentPage('schemes'); setDrawerOpen(false); }}>
+            <TouchableOpacity onPress={() => { navigateTo('schemes'); setDrawerOpen(false); }}>
               <Text style={styles.drawerItem}>Schemes</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setCurrentPage('videos'); setDrawerOpen(false); }}>
+            <TouchableOpacity onPress={() => { navigateTo('videos'); setDrawerOpen(false); }}>
               <Text style={styles.drawerItem}>Videos</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setCurrentPage('image-generate'); setDrawerOpen(false); }}>
+            <TouchableOpacity onPress={() => { navigateTo('image-generate'); setDrawerOpen(false); }}>
               <Text style={styles.drawerItem}>Generate Image</Text>
-            </TouchableOpacity>
-            {/* <TouchableOpacity onPress={() => { Logout(); setDrawerOpen(false); }}>
-              <Text style={styles.drawerItem}>Logout</Text>
-            </TouchableOpacity> */}
-            {/* // Usage in your TouchableOpacity */}
-            <TouchableOpacity
-              onPress={async () => {
-                await clearLocalStorage();
-                Logout(); // call your logout function if needed
-                setDrawerOpen(false);
-              }}
-            >
-              <Text style={styles.drawerItem}>Logout</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Transparent area to close drawer */}
           <TouchableOpacity
             style={styles.drawerBackdrop}
             activeOpacity={1}
@@ -268,54 +279,15 @@ function Layout() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    height: 60,
-    backgroundColor: '#eee',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    zIndex: 9,
-  },
+  header: { height: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, zIndex: 9 },
   title: { fontSize: 18, marginLeft: 10, fontWeight: 'bold', color: '#fff' },
   menu: { fontSize: 24, padding: 15, color: '#fff' },
-  bottomTabs: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-  },
+  bottomTabs: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', backgroundColor: '#fff', padding: 15, borderTopWidth: 1, borderTopColor: '#ddd' },
   tabItem: { fontSize: 10 },
   tabButton: { alignItems: 'center', justifyContent: 'center', padding: 10 },
   activeTabText: { color: '#f40a92ff' },
-
-  // Drawer styles
-  drawerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: "row",
-    zIndex: 1,
-  },
-  drawer: {
-    marginTop: 98,
-    width: 250,
-    backgroundColor: "#fff",
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-
-  },
-  drawerItem: {
-    fontSize: 16,
-    marginVertical: 15,
-    color: "#333",
-  },
-  drawerBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
-  },
+  drawerOverlay: { ...StyleSheet.absoluteFillObject, flexDirection: 'row', zIndex: 1 },
+  drawer: { marginTop: 98, width: 250, backgroundColor: '#fff', padding: 20, shadowColor: '#000', shadowOffset: { width: 2, height: 0 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 5 },
+  drawerItem: { fontSize: 16, marginVertical: 15, color: '#333' },
+  drawerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
 });

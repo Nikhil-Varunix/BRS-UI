@@ -31,11 +31,7 @@ const images = [
   {
     id: "img2",
     src: "https://images.indianexpress.com/2024/07/KCR.jpg",
-  },
-  {
-    id: "img3",
-    src: "https://placekitten.com/500/300",
-  },
+  }
 ];
 
 export default function SelectImage({ setCurrentPage, setSelectedImageId }: SchemeDetailsProps) {

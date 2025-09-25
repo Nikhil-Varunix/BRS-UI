@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Modal, View, Button, Dimensions, StyleSheet, Animated, Text, TouchableOpacity } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Modal, View, Dimensions, StyleSheet, Animated, Text, TouchableOpacity } from "react-native";
 import { Video } from "expo-av";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const POPUP_KEY = "dashboard_video_shown_date";
-const SKIP_DURATION = 15000; // 15 seconds
+// const SKIP_DURATION = 15000; 
+const SKIP_DURATION = 0; 
 
 type VideoPopupProps = {
   videoUri: string;
@@ -19,40 +18,33 @@ export default function VideoPopup({ videoUri }: VideoPopupProps) {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const checkPopup = async () => {
-      const lastShown = await AsyncStorage.getItem(POPUP_KEY);
-      const today = new Date().toDateString();
+    // Show popup every time component mounts
+    setShowPopup(true);
 
-      if (lastShown !== today) {
-        setShowPopup(true);
+    // Animate progress bar
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: SKIP_DURATION,
+      useNativeDriver: false,
+    }).start(() => {
+      setShowButton(true);
+    });
 
-        // Animate progress bar
-        Animated.timing(progressAnim, {
-          toValue: 1,
-          duration: SKIP_DURATION,
-          useNativeDriver: false,
-        }).start(() => {
-          setShowButton(true);
-        });
+    // Countdown timer
+    const interval = setInterval(() => {
+      setRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-        // Countdown timer
-        const interval = setInterval(() => {
-          setRemaining((prev) => {
-            if (prev <= 1) {
-              clearInterval(interval);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      }
-    };
-    checkPopup();
+    return () => clearInterval(interval);
   }, []);
 
-  const handleClosePopup = async () => {
-    const today = new Date().toDateString();
-    await AsyncStorage.setItem(POPUP_KEY, today);
+  const handleClosePopup = () => {
     setShowPopup(false);
     setShowButton(false);
     progressAnim.setValue(0);
@@ -144,5 +136,6 @@ const styles = StyleSheet.create({
   skipText: {
     color: "#fff",
     fontWeight: "bold",
+    
   },
 });
