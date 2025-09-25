@@ -136,6 +136,5 @@ const styles = StyleSheet.create({
   skipText: {
     color: "#fff",
     fontWeight: "bold",
-    
   },
 });
