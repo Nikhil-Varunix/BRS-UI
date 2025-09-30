@@ -61,3 +61,5 @@ Join our community of developers creating universal apps.
 
 Set up expo.dev account first 
 then run - [`eas build -p android --profile preview`]
+
+

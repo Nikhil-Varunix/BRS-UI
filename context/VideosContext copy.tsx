@@ -18,19 +18,24 @@ export const VideosProvider = ({ children }: { children: ReactNode }) => {
     const [videos, setVideos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-       useEffect(() => {
-        const fetchVideos = async () => {
-            try {
-                const response = await axios.get(`${API_BASE_URL}/videos/`);
-                setVideos(response.data);
-            } catch (err) {
-                console.error("Videos API error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchVideos();
+    useEffect(() => {
+        setVideos(videoList);
+        setLoading(false);
     }, []);
+    // useEffect(() => {
+    //     const fetchVideos = async () => {
+    //         try {
+    //             const response = await axios.get(`${API_BASE_URL}/videos/`);
+    //             setVideos(response.data);
+    //         } catch (err) {
+    //             console.error("Videos API error:", err);
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
+
+    //     fetchVideos();
+    // }, []);
 
     return (
         <VideosContext.Provider value={{ videos, loading }}>

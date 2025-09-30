@@ -4,7 +4,7 @@ import * as Sharing from "expo-sharing";
 import React, { useRef, useState } from "react";
 import { Button, Dimensions, Image, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView, PanGestureHandler, PinchGestureHandler, TapGestureHandler } from "react-native-gesture-handler";
-import Animated, { useAnimatedGestureHandler, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedGestureHandler, useAnimatedStyle, useSharedValue, withTiming, runOnJS } from "react-native-reanimated";
 import { captureRef } from "react-native-view-shot";
 
 
@@ -26,9 +26,14 @@ export default function EditImageGenerate({
   setSelectedSchemeId
 }: EditImageGenerateProps) {
 
-  const panRef = useRef(null);
-  const pinchRef = useRef(null);
-  const tapRef = useRef(null);
+  const overlayPanRef = useRef(null);
+  const overlayPinchRef = useRef(null);
+  const overlayTapRef = useRef(null);
+
+  const textPanRef = useRef(null);
+  const textPinchRef = useRef(null);
+  const textTapRef = useRef(null);
+
   const inputRef = useRef<TextInput>(null);
 
   const [overlayShape, setOverlayShape] = useState<"original" | "square" | "rounded" | "circle">("original");
@@ -39,7 +44,6 @@ export default function EditImageGenerate({
   const [imgHeight, setImgHeight] = useState<number | null>(null);
   const [textSize, setTextSize] = useState({ width: 0, height: 0 });
   const [isEditingText, setIsEditingText] = useState(false);
-
 
   const scale = useSharedValue(1);
   const imgX = useSharedValue(0);
@@ -70,15 +74,23 @@ export default function EditImageGenerate({
     }
   };
 
-  // --- Image gestures ---
+  // --- Overlay Image Drag Handler ---
   const dragImage = useAnimatedGestureHandler({
     onStart: (_, ctx: any) => {
       ctx.startX = imgX.value;
       ctx.startY = imgY.value;
     },
     onActive: (event, ctx: any) => {
-      imgX.value = ctx.startX + event.translationX;
-      imgY.value = ctx.startY + event.translationY;
+      let newX = ctx.startX + event.translationX;
+      let newY = ctx.startY + event.translationY;
+
+      // Clamp within editor boundaries (150x150 cropWrapper size)
+      const boxSize = 150 * scale.value;
+      newX = Math.min(Math.max(newX, 0), editorWidth - boxSize);
+      newY = Math.min(Math.max(newY, 0), editorHeight - boxSize);
+
+      imgX.value = newX;
+      imgY.value = newY;
     },
   });
 
@@ -91,19 +103,27 @@ export default function EditImageGenerate({
     },
   });
 
-  // --- Text gestures ---
+  // --- Text Drag Handler ---
   const dragText = useAnimatedGestureHandler({
+    
     onStart: (_, ctx: any) => {
       ctx.startX = textX.value;
       ctx.startY = textY.value;
     },
     onActive: (event, ctx: any) => {
-      const newX = ctx.startX + event.translationX;
-      const newY = ctx.startY + event.translationY;
-      textX.value = ctx.startX + event.translationX;
-      textY.value = ctx.startY + event.translationY;
+      let newX = ctx.startX + event.translationX;
+      let newY = ctx.startY + event.translationY;
 
+      const boxW = textSize.width * textScale.value + 20; // padding buffer
+      const boxH = textSize.height * textScale.value + 20;
+
+      newX = Math.min(Math.max(newX, 0), editorWidth - boxW);
+      newY = Math.min(Math.max(newY, 0), editorHeight - boxH);
+
+      textX.value = newX;
+      textY.value = newY;
     },
+    
   });
 
   const pinchTextHandler = useAnimatedGestureHandler({
@@ -122,18 +142,15 @@ export default function EditImageGenerate({
     transform: [{ scale: scale.value }],
   }));
 
-
-
   const textAnimatedStyle = useAnimatedStyle(() => ({
     position: "absolute",
     left: textX.value,
     top: textY.value,
     transform: [{ scale: textScale.value }],
-    backgroundColor: isEditingText ? "rgba(26, 24, 24, 0.25)" : "transparent",
+    // backgroundColor: isEditingText ? "rgba(26, 24, 24, 0.25)" : "transparent",
+    backgroundColor: isEditingText ? "transparent" : "transparent",
     paddingHorizontal: isEditingText ? 5 : 0,
-
   }));
-
 
   const onTextTap = () => {
     setIsEditingText(true);
@@ -145,8 +162,6 @@ export default function EditImageGenerate({
       inputRef.current?.focus();
     }, 100);
   };
-
-
 
   const onTextInputBlur = () => {
     setIsEditingText(false);
@@ -171,7 +186,7 @@ export default function EditImageGenerate({
         <View
           ref={viewRef}
           collapsable={false}
-          style={[styles.editor, imgHeight ? { height: imgHeight }:"" ]}
+          style={[styles.editor, imgHeight ? { height: imgHeight } : ""]}
           onLayout={(e) => setEditorWidth(e.nativeEvent.layout.width)}
         >
           {imageUri || imageId ? (
@@ -186,9 +201,7 @@ export default function EditImageGenerate({
                 setEditorHeight(scaledHeight);
 
                 textX.value = withTiming(0, { duration: 500 });
-                textY.value = withTiming( scaledHeight - 60, { duration: 500 });
-                
-
+                textY.value = withTiming(scaledHeight - 60, { duration: 500 });
               }}
             />
           ) : (
@@ -196,12 +209,12 @@ export default function EditImageGenerate({
           )}
 
           {overlayImage && (
-            <PanGestureHandler ref={panRef} simultaneousHandlers={[pinchRef, tapRef]} onGestureEvent={dragImage}>
+            <PanGestureHandler ref={overlayPanRef} simultaneousHandlers={[overlayPinchRef, overlayTapRef]} onGestureEvent={dragImage}>
               <Animated.View style={imageStyle}>
-                <PinchGestureHandler ref={pinchRef} simultaneousHandlers={[panRef, tapRef]} onGestureEvent={pinchHandler}>
+                <PinchGestureHandler ref={overlayPinchRef} simultaneousHandlers={[overlayPanRef, overlayTapRef]} onGestureEvent={pinchHandler}>
                   <Animated.View>
                     <TapGestureHandler
-                      ref={tapRef}
+                      ref={overlayTapRef}
                       numberOfTaps={2}
                       onActivated={() => {
                         setOverlayShape((prev) => {
@@ -211,7 +224,7 @@ export default function EditImageGenerate({
                           return "original";
                         });
                       }}
-                      simultaneousHandlers={[panRef, pinchRef]}
+                      simultaneousHandlers={[overlayPanRef, overlayPinchRef]}
                     >
                       <Animated.View>
                         <View
@@ -234,25 +247,30 @@ export default function EditImageGenerate({
           )}
 
           <PanGestureHandler
-            ref={panRef}
-            simultaneousHandlers={[pinchRef, tapRef]}
+            ref={textPanRef}
+            simultaneousHandlers={[textPinchRef, textTapRef]}
             onGestureEvent={dragText}
           >
             <Animated.View style={textAnimatedStyle}>
               <PinchGestureHandler
-                ref={pinchRef}
-                simultaneousHandlers={[panRef, tapRef]}
+                ref={textPinchRef}
+                simultaneousHandlers={[textPanRef, textTapRef]}
                 onGestureEvent={pinchTextHandler}
               >
                 <Animated.View style={{ padding: isEditingText ? 0 : 15, }}>
                   <TapGestureHandler
-                    ref={tapRef}
+                    ref={textTapRef}
                     numberOfTaps={1}
                     onActivated={onTextTap}
-                    simultaneousHandlers={[panRef, pinchRef]}
+                    simultaneousHandlers={[textPanRef, textPinchRef]}
                   >
                     <Animated.View style={{ padding: 5, justifyContent: 'center', alignItems: 'center' }}>
-                      <Animated.Text style={[styles.label]}>
+                      <Animated.Text
+                        style={[styles.label]}
+                        onLayout={(e) => {
+                          setTextSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height });
+                        }}
+                      >
                         {label}
                       </Animated.Text>
                     </Animated.View>
@@ -261,8 +279,6 @@ export default function EditImageGenerate({
               </PinchGestureHandler>
             </Animated.View>
           </PanGestureHandler>
-
-
         </View>
 
         <TextInput
@@ -274,6 +290,7 @@ export default function EditImageGenerate({
           onFocus={onTextTap}
           onBlur={onTextInputBlur}
         />
+
         <View style={styles.buttonContainer}>
           <View style={[styles.buttonWrapper, styles.addButtonWrapper]}>
             <Button title="+ Add Image" onPress={pickImage} color="success" />
@@ -282,8 +299,6 @@ export default function EditImageGenerate({
             <Button title="Share" onPress={onShare} color="#2196F3" />
           </View>
         </View>
-
-
       </View>
     </GestureHandlerRootView>
   );

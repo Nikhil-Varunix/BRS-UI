@@ -199,6 +199,7 @@ function Layout() {
           {currentPage === 'select-image' && (
             <SelectImage
               setSelectedImageId={setSelectedImageId}
+              selectedSchemeId={selectedSchemeId}
               setSelectedImageUri={setSelectedImageUri}
               setCurrentPage={navigateTo}
             />

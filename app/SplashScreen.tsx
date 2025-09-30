@@ -16,7 +16,7 @@ export default function SplashScreen({ onFinish }: SplashProps) {
 
   return (
     <ImageBackground
-      source={require('../assets/images/kaleshwaram.png')}
+      source={require('../assets/images/kaleshwaram.jpg')}
       style={styles.background}
       resizeMode="cover"
     >

@@ -1,4 +1,6 @@
+import { API_BASE_URL, IMG_BASE_URL } from '@/config';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
@@ -18,33 +20,48 @@ type PageKeys =
 
 type SchemeDetailsProps = {
   setSelectedImageId: React.Dispatch<React.SetStateAction<string | null>>;
-  setSelectedImageUri: React.Dispatch<React.SetStateAction<string | null>>;
+  setSelectedImageUri?: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedSchemeId?: string | null;
   setCurrentPage: (page: PageKeys) => void;
 };
 
 const { width } = Dimensions.get('window');
-const images = [
-  {
-    id: "img1",
-    src: "https://dev.servicenxt.in/frameImages/srikrishnajanmaastimitwo.jpeg",
-  },
-  {
-    id: "img2",
-    src: "https://images.indianexpress.com/2024/07/KCR.jpg",
-  }
-];
 
-export default function SelectImage({ setCurrentPage, setSelectedImageId }: SchemeDetailsProps) {
-  const [imageHeights, setImageHeights] = useState<{ [key: string]: number }>({});
+// Component for dynamically sized image
+const DynamicImage = ({ uri }: { uri: string }) => {
+  const [height, setHeight] = useState(200); // fallback height
 
   useEffect(() => {
-    images.forEach((item) => {
-      Image.getSize(item.src, (w, h) => {
-        const scaledHeight = (width * h) / w; // scale height based on device width
-        setImageHeights((prev) => ({ ...prev, [item.id]: scaledHeight }));
-      });
-    });
-  }, []);
+    Image.getSize(uri, (w, h) => {
+      const scaledHeight = (width * h) / w;
+      setHeight(scaledHeight);
+    }, (err) => console.error("Image getSize error:", err));
+  }, [uri]);
+
+  return <Image source={{ uri }} style={[styles.image, { height }]} />;
+};
+
+export default function SelectImage({ setCurrentPage, selectedSchemeId, setSelectedImageId }: SchemeDetailsProps) {
+  const [images, setImages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!selectedSchemeId) return;
+
+    const fetchImages = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/images/month/${selectedSchemeId}`);
+        setImages(response.data);
+      } catch (err) {
+        console.error("Images API error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchImages();
+  }, [selectedSchemeId]);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -52,34 +69,39 @@ export default function SelectImage({ setCurrentPage, setSelectedImageId }: Sche
         <TouchableOpacity
           onPress={() => {
             setCurrentPage('image-generate');
-            if (setSelectedImageId) setSelectedImageId(null);
+            setSelectedImageId(null);
           }}
           style={styles.headerBtn}
         >
           <Ionicons name="arrow-back" size={22} color="#000" />
         </TouchableOpacity>
-        <Text> Select Image </Text>
+        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Select Image</Text>
       </View>
 
-      {images.map((item) => (
-        <TouchableOpacity
-          key={item.id}
-          onPress={() => {
-            setSelectedImageId(item.src);
-            setCurrentPage("edit-image-generate");
-          }}
-        >
-          <View style={{ width: "100%", marginBottom: 10 }}>
-            <Image
-              source={{ uri: item.src }}
-              style={[
-                styles.image,
-                { height: imageHeights[item.id] || 200 }, // fallback height until loaded
-              ]}
-            />
-          </View>
-        </TouchableOpacity>
-      ))}
+      <View>
+        {loading ? (
+          <Text>Loading images...</Text>
+        ) : images.length === 0 ? (
+          <Text>No images available for {selectedSchemeId}</Text>
+        ) : (
+          images.map(item => {
+            const uri = `${IMG_BASE_URL}/uploads/${selectedSchemeId}/${item.imgurl}`;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                onPress={() => {
+                  setSelectedImageId(uri);
+                  setCurrentPage("edit-image-generate");
+                }}
+              >
+                <View style={{width:"100%"}}>
+                  <DynamicImage uri={uri} />
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -87,12 +109,12 @@ export default function SelectImage({ setCurrentPage, setSelectedImageId }: Sche
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fafafa' },
   image: {
-    width: "100%",
-    resizeMode: "cover",
-    borderRadius: 10,
-  },
+  width: "100%",
+  resizeMode: "contain",
+  borderRadius: 10,
+},
+
   header: {
-    // paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 5,
@@ -102,16 +124,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   scrollContainer: {
-    // flexGrow: 1,
     minHeight: "100%",
     padding: 20,
     backgroundColor: "#fff",
   },
-  container: {
-    // flex: 1,
-    // justifyContent: "center",
-    // padding: 20,
-    backgroundColor: "#fff",
-  },
-
 });
