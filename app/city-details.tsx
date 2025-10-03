@@ -1,4 +1,5 @@
 // scheme-details.tsx
+import { ActivityIndicator } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
@@ -42,7 +43,7 @@ export default function CityDetails({
   setSelectedSchemeId,
   selectedSchemeId,
 }: CityDetailsProps) {
- 
+
   const [city, setCity] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +64,15 @@ export default function CityDetails({
     fetchCity();
   }, [selectedSchemeId]);
 
-  if (loading) return <Text style={{ padding: 20 }}>Loading...</Text>;
+    if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#f40a92" />
+        <Text style={{ marginTop: 10, color: '#555' }}>Loading...</Text>
+      </View>
+    );
+  }
+
   if (error) return <Text style={{ padding: 20 }}>Error: {error}</Text>;
   if (!city) return <Text style={{ padding: 20 }}>No city data found.</Text>;
 
@@ -94,27 +103,21 @@ export default function CityDetails({
             <Text style={styles.cardTitle}>{city.name}</Text>
             <Text style={styles.cardSubtitle}>{city.extract}</Text>
 
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.paragraph}>{city.description}</Text>
+            {/* <Text style={styles.sectionTitle}>Description</Text> */}
+            {city.description.map((item: any, index: number) => (
+              <View key={index} style={{ marginBottom: 32 }}>
+                <Text style={{ fontWeight: '700', fontSize: 15, marginBottom: 4 }}>{item.name}</Text>
+                {item.imgurl ? (
+                  <Image
+                    source={{ uri: item.imgurl }}
+                    style={{ width: '100%', height: 180, borderRadius: 8, marginBottom: 6 }}
+                    resizeMode="cover"
+                  />
+                ) : null}
+                <Text style={styles.paragraph}>{item.description}</Text>
+              </View>
+            ))}
 
-            <Text style={styles.sectionTitle}>Status</Text>
-            <Text style={styles.paragraph}>{city.status}</Text>
-
-            <Text style={styles.sectionTitle}>Created By</Text>
-            <Text style={styles.paragraph}>{city.createdby}</Text>
-
-            <Text style={styles.sectionTitle}>Updated By</Text>
-            <Text style={styles.paragraph}>{city.updatedby}</Text>
-
-            <Text style={styles.sectionTitle}>Created At</Text>
-            <Text style={styles.paragraph}>
-              {new Date(city.createdAt).toLocaleDateString()}
-            </Text>
-
-            <Text style={styles.sectionTitle}>Updated At</Text>
-            <Text style={styles.paragraph}>
-              {new Date(city.updatedAt).toLocaleDateString()}
-            </Text>
           </View>
         </View>
       </ScrollView>

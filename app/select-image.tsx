@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   ScrollView,
@@ -80,7 +81,7 @@ export default function SelectImage({ setCurrentPage, selectedSchemeId, setSelec
 
       <View>
         {loading ? (
-          <Text>Loading images...</Text>
+          <ActivityIndicator size="large" color="#f40a92" style={{ marginTop: 20 }} />
         ) : images.length === 0 ? (
           <Text>No images available for {selectedSchemeId}</Text>
         ) : (
@@ -94,7 +95,7 @@ export default function SelectImage({ setCurrentPage, selectedSchemeId, setSelec
                   setCurrentPage("edit-image-generate");
                 }}
               >
-                <View style={{width:"100%"}}>
+                <View style={{ width: "100%" }}>
                   <DynamicImage uri={uri} />
                 </View>
               </TouchableOpacity>
@@ -109,11 +110,10 @@ export default function SelectImage({ setCurrentPage, selectedSchemeId, setSelec
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fafafa' },
   image: {
-  width: "100%",
-  resizeMode: "contain",
-  borderRadius: 10,
-},
-
+    width: "100%",
+    resizeMode: "contain",
+    borderRadius: 10,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
